@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registration</title>
+    <meta charset="utf-8" />
+    <script src="jquery-3.1.1.min.js"></script>
+    <script src="knockout-3.4.2.js"></script>
+    <script type="text/javascript">
+        
+
+	  jQuery.support.cors = true;
+		
+        $(document).ready(function() {
+
+            var customerDetailsViewModel = function() {
+            var self = this;
+
+			self.id = ko.observable("");
+		    self.name = ko.observable("");
+            self.mail = ko.observable("");
+            self.leave_type = ko.observable("");
+            self.start_date = ko.observable("");
+            self.end_date = ko.observable("");
+
+            self.SuccessMessage = ko.observable("");
+			
+			
+		self.SaveCustomerDetails = function () {              
+                
+				var leaveapplication = {
+
+
+				id : self.id(),
+				mail: self.mail(),
+				name: self.name(),
+                        leave_type: self.leave_type(),
+                        start_date: self.start_date(),
+                        end_date: self.end_date()
+				
+				}
+				
+				
+				
+				
+				
+				$.ajax({
+					crossDomain: true,
+				url:'https://ekjhxl7jx9.execute-api.us-east-1.amazonaws.com/test/addApplicants',
+					
+					
+                    cache: false,
+                    type: 'POST', 
+                    data: ko.toJSON(leaveapplication),
+                    success: function (data) {              
+                        self.SuccessMessage(data)
+						    self.id('');
+							self.mail('');
+							self.name('');
+							self.leave_type('');
+                                          self.start_date('');  
+							self.end_date('');
+						
+                    }
+					}).fail(
+					
+					
+					function(xhr, textStatus, err){
+					alert("Error happened "+err);
+					
+                });
+            };
+        }
+
+            var viewModel = new customerDetailsViewModel();
+            ko.applyBindings(viewModel);
+         });
+
+       
+    </script>
+</head>
+<body>
+<Center>
+<h2>Leave Request</h2>
+
+    <table>
+        <tr>
+            <td>
+			<div>
+
+                              <p>
+					Email:
+					<input type="email" data-bind='value: mail' required/>
+					</p>
+					<p>
+						ID :
+						<input type = "text" data-bind='value: id' required/>
+					</p>				      				
+					<p>			
+					Name:
+					<input type="text" data-bind='value: name' required/>
+					</p>
+					<p>
+					Reason for Leave :
+					<select data-bind='value: leave_type' required/>
+                              <option value="">Select Leave Type</option>
+			            <option value="Vacation">Vacation</option>
+			            <option value="Sick">Sick</option>
+			            <option value="Personal">Personal</option>
+		                  </select><br>
+					</p>
+                              <p>
+					From Date:
+					<input type="date" data-bind='value: start_date' required/>
+					</p>
+                              <p>
+					To Date:
+					<input type="date" data-bind='value: end_date' required/>
+					</p>
+						
+			</div>
+						
+					<span style ="color: darkolivegreen" data-bind='text : SuccessMessage' />
+					
+				</td>
+				</tr>
+				<tr>
+					<td>
+						<div>
+								<button data-bind="click: $root.SaveCustomerDetails"> Submit </button>
+							</div>
+						</td>
+					</tr>
+
+					
+				</table>
+		</center>		
+				</body>
+				</html>
