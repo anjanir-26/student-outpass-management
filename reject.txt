@@ -1,0 +1,85 @@
+reject:-
+
+const AWS = require('aws-sdk');
+const docClient = new AWS.DynamoDB.DocumentClient();
+const ses = new AWS.SES({ region: "us-east-1" }); 
+const tableName = "outpass_management_system";
+
+exports.handler = (event, context, callback) => {
+    console.log(event.Email);
+
+    const params = {
+        TableName: tableName,
+        Key: {
+            "id": event.id
+        }
+    };
+
+    docClient.get(params, function (err, data) {
+        if (err) {
+            callback(err);
+        } else {
+            const item = data.Item;
+            if (!item) {
+                callback(new Error("Item not found"));
+            } else {
+                // Update status to "accepted"
+                const updateParams = {
+                    TableName: tableName,
+                    Key: {
+                        "id": event.id
+                    },
+                    UpdateExpression: "SET #status = :status",
+                    ExpressionAttributeNames: {
+                        "#status": "status"
+                    },
+                    ExpressionAttributeValues: {
+                        ":status": "rejected"
+                    },
+                    ReturnValues: "ALL_NEW" // Return the updated item
+                };
+
+                docClient.update(updateParams, function (err, updatedData) {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        const updatedItem = updatedData.Attributes;
+                        // Send email to the applicant
+                        sendEmail(updatedItem.name, updatedItem.start_date, updatedItem.end_date, updatedItem.leave_type, updatedItem.mail, updatedItem.id,updatedItem.status);
+                        callback(null, updatedItem);
+                    }
+                });
+            }
+        }
+    });
+};
+
+function sendEmail(name,start_date,end_date,leave_type,recipientEmail, requestId,status) {
+    const params = {
+        Destination: {
+            ToAddresses: [recipientEmail]
+        },
+        Message: {
+            Body: {
+                Text: {
+                    Charset: "UTF-8",
+                    Data: ` Dear ${name} Your outpass  request for the following details
+                    
+    Leave Type: ${leave_type}
+    Start Date: ${start_date}
+    End Date: ${end_date} has been ${status}. for further queries contact 2100031319cseh1@gmail.com`
+                }
+            },
+            Subject: {
+                Charset: "UTF-8",
+                Data: "Leave Request rejected"
+            }
+        },
+        Source: "yourmailid@gmail.com" // Replace "your-sender-email" with your sender email address verified in SES
+    };
+
+    ses.sendEmail(params, function (err, data) {
+        if (err) console.log(err, err.stack);
+        else console.log("Email sent successfully:", data);
+    });
+}

@@ -1,0 +1,82 @@
+AddApplicants: 
+
+const AWS = require("aws-sdk");
+const ses = new AWS.SES({ region: "us-east-1" }); // Replace "YOUR_REGION" with your AWS region
+const docClient = new AWS.DynamoDB.DocumentClient();
+
+exports.handler = (event, context, callback) => {
+    const tableName = "outpass_management_system";
+    const params = {
+        TableName: tableName,
+        Item: {
+            "id": event.id,
+            "name": event.name,
+            "mail": event.mail,
+            "leave_type": event.leave_type,
+            "start_date": event.start_date,
+            "end_date": event.end_date,
+            "status": "pending"
+        }
+    };
+    
+
+    docClient.put(params, function (err, data) {
+        if (err) {
+            callback(err, data);
+        } else {
+            // Send email
+            const acceptLink = `https://ekjhxl7jx9.execute-api.us-east-1.amazonaws.com/test/accept?id=${event.id}`;
+            const rejectLink = `https://ekjhxl7jx9.execute-api.us-east-1.amazonaws.com/test/reject?id=${event.id}`;
+            sendEmail(event.name, event.mail, event.id, event.leave_type, event.start_date, event.end_date, acceptLink, rejectLink);
+            
+            callback(null, "Successfully updated data and sent email");
+        }
+    });
+};
+
+function sendEmail(name , senderEmail, id, leaveType, startDate, endDate, acceptLink, rejectLink) {
+    const subject = "Leave Request Notification";
+const message = `Dear Manager,
+
+A leave request has been submitted:
+
+ID: ${id}
+Name: ${name}
+Leave Type: ${leaveType}
+Start Date: ${startDate}
+End Date: ${endDate}
+
+Please click the following links to accept or reject the request:
+Accept: ${acceptLink}
+
+Reject: ${rejectLink}
+
+
+
+Regards,
+Your Company`;
+
+    const params = {
+        Destination: {
+            ToAddresses: ['2100031319cseh1@gmail.com']
+        },
+        Message: {
+            Body: {
+                Text: {
+                    Charset: "UTF-8",
+                    Data: message
+                }
+            },
+            Subject: {
+                Charset: "UTF-8",
+                Data: subject
+            }
+        },
+        Source: senderEmail // Replace with your sender email address
+    };
+
+    ses.sendEmail(params, function (err, data) {
+        if (err) console.log(err, err.stack);
+        else console.log("Email sent successfully:", data);
+    });
+}
